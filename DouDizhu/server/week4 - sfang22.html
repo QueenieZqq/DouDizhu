@@ -1,0 +1,265 @@
+<meta charset="utf-8" emacsmode="-*- markdown -*-"><link rel="stylesheet" href="https://casual-effects.com/markdeep/latest/apidoc.css?">
+
+                          **6.08 Final Project File week 04**
+                          **By Shushu Fang (sfang22)**
+
+![Demo for replaying past games](https://youtu.be/2jONuUod5oQ)
+
+
+# Replay
+
+## Implement the server log for replaying the game
+
+**Requirement:**
+
+* In order to replay the game, we must be able to save every move of the users. 
+**Implementation:**
+
+In this case, we created a new table in our FTL.db called "replay" which documents every move of users. Every time we update the entry in games, we also insert what's being updated into our "replay" table.
+||game_id|timing|cards_last_played|last_player|current_player|cards_landlord|cards_peasant1|cards_peasant2|
+|--- |-- |-- |-- |-- |-- |-- |-- |-- |-- |
+|TYPE |int|timestamp|text|text|text|text|text|text|
+
+With this table, we are able to reconstruct the game if given the game_id. To easily access that information, I implemented replay_handler which returns though a GET request the necessary information to reconstruct the game if given the game_id. 
+
+## Web UI
+
+**Requirement:**
+
+* There should be an easy to use UI for users to choose which game to replay. 
+
+**Implementation:**
+
+To do this, I implemented the webpage with files index.html, index.js and index.css. First there's a dropdown including all the finished game stored in DB. Users can choose which game id they want to replay and click on submit. First they would be shown images about their identities, and then later a table of all the entries. Specific implementation is listed below.    
+
+index.html lays the ground framework of what the web page would look like, but each tag is later dynamically injected into the webpage using index.js, mostly using jQuery. Bootstrap is used for styling so is index.css
+# Other Thoughts
+As of right now, the users would need to refresh to get the replay for each game_id, and the reason for that once the table is appended, its not de-appended, which could be improved on. 
+
+# Code Appendix
+
+My replay_handler file is here:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import sqlite3
+import requests
+import datetime
+import hashlib
+import random
+import numpy as np
+
+visits_db = "__HOME__/week04/FTL.db"
+
+def request_handler(request):
+    if request['method'] == 'GET':
+        if request['values']['action']=="games": #getting all the ids of the games that already finishes 
+            conn = sqlite3.connect(visits_db)
+            c = conn.cursor()
+            entries = c.execute('''SELECT * FROM games WHERE status = ?;''', ('Finished',)).fetchall()
+            conn.commit()
+            conn.close()
+            return entries 
+
+        if request['values']['action']=="status":
+            game_ID = request['values']['game_id']
+            conn = sqlite3.connect(visits_db)
+            c = conn.cursor()
+            entries =  c.execute('''SELECT * from games WHERE game_id = ?;''', (game_ID,)).fetchall()
+            conn.commit()
+            conn.close()
+            landlord = entries[0][5]
+            peasant1 = entries[0][6]
+            peasant2 = entries[0][7]
+            return "{},{},{}".format(landlord, peasant1, peasant2)
+
+        if request['values']['action']=="entries":
+            game_ID = request['values']['game_id']
+            conn = sqlite3.connect(visits_db)
+            c = conn.cursor()
+            entries =  c.execute('''SELECT * from replay WHERE game_id = ? ORDER BY timing ASC;''', (game_ID,)).fetchall()
+            conn.commit()
+            conn.close()
+            return entries
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+index.html is this:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<html>
+    <head>
+        <title>Replay</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+        <link rel='stylesheet' href='index.css'>
+    </head>
+    <body>
+        <h3>Replay Past Games</h3>
+        <form id = "control">
+            <div class="form-group">
+                <label for="games">Choose a game id to replay</label>
+                <select id = "games" class="form-control">
+                    <option>------</option>
+                </select>
+              </div>
+
+            <button type="button" class="btn btn-primary">Submit</button>    
+        </form>
+        <div class = "row" id = "identity">
+            <div class="col-sm-4"><img src="http://web.mit.edu/sfang22/www/resources/landlord.png" height="100" /> <p id = "ll">Landlord: </p></div>
+            <div class="col-sm-4"><img src="http://web.mit.edu/sfang22/www/resources/peasant.jpg" height="100" /> <p id = "p1"> Peasant1: </p></div>
+            <div class="col-sm-4"><img src="http://web.mit.edu/sfang22/www/resources/peasant.jpg" height="100" /> <p id = "p2"> Peasant2: </p></div>
+        </div>
+        <table id = "info">
+            <thead>
+              <tr>
+                <th scope="col">Current Player</th>
+                <th scope="col">Cards Played</th>
+                <th scope="col">Cards Remaining</th>
+                <th scope="col">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+          </table>
+        <script src = "./index.js"> </script>
+    </body>
+</html>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+index.js is this:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function textToArray(data) {
+  data = data.replace("[","").replace("]", "").replace("\n", "")
+  var result = []
+  entries = data.split(")");
+  for (let i in entries) {
+      each_entry = entries[i].replace("(", "").split(", '");
+      for (let j in each_entry)
+          each_entry[j] = each_entry[j].replace("\'", "").replace(", ", "")
+      result.push(each_entry)
+  }
+  return result
+
+}
+
+
+fetch('http://608dev-2.net/sandbox/sc/team018/week04/replay_handler.py?action=games')
+.then(response => response.text())
+.then(data => textToArray(data))
+.then(data => {
+  console.log(data);
+  for (let i in data)  {
+      if (i < data.length - 1) {
+          let option = $("<option>").attr('id', data[i][0]).html(data[i][0]);
+          console.log(data[i][0]);
+          $("#games").append(option);
+      }
+  }
+
+});
+
+$("button").click(function(){
+  
+  let identity_url = "http://608dev-2.net/sandbox/sc/team018/week04/replay_handler.py?action=status&game_id=" + $('#games').val(); 
+  let url = 'http://608dev-2.net/sandbox/sc/team018/week04/replay_handler.py?action=entries&game_id=' + $('#games').val(); 
+  console.log(url);
+  fetch(identity_url)
+  .then(response => response.text())
+  .then(data => {
+      data = data.split(",");
+      $("#ll").html(`Landlord: ${data[0]}`);
+      $("#p1").html(`Peasant1: ${data[1]}`);
+      $("#p2").html(`Peasant2: ${data[2]}`);
+      console.log('hello');
+  });
+  fetch(url)
+   .then(response => response.text())
+   .then(data => textToArray(data))
+   .then(data => {
+      console.log(data);
+      for (let i in data) {
+          if (i < data.length - 1) {
+              tr_entry = $("<tr>").attr('id', i);
+              player = data[i][3];
+              if (player =="") player = "No One Yet";
+              timestamp = data[i][1];
+              cards = data[i][2].split(",");
+              let images = $("<div>")
+              if (data[i][2]!="") {
+                  for (let j in cards) {
+                      let link = "http://web.mit.edu/sfang22/www/resources/" + cards[j] + '.jpg';
+                      if (cards[j]=='OO') link = "http://web.mit.edu/sfang22/www/resources/O.jpg";
+                      let image = $('<img>').attr('src', link).attr("height", "100").attr("width", 75);
+                      images.append(image);
+                  }
+              }
+              else {
+                  images.html("Pass this round");
+              }
+              cards_landlord = data[i][5].split(",").length;
+              if (data[i][5]=="") cards_landlord = 0;
+              cards_peasant1 = data[i][6].split(",").length;     
+              if (data[i][6]=="") cards_peasant1 = 0;      
+              cards_peasant2 = data[i][7].split(",").length;
+              if (data[i][7]=="") cards_peasant2 = 0;
+              tr_entry.append($('<td>').html(player));
+              tr_entry.append($('<td>').html(images));
+              tr_entry.append($('<td>').html(`landlord: ${cards_landlord}, peasant1: ${cards_peasant1}, peasant2: ${cards_peasant2}`));
+              tr_entry.append($('<td>').html(timestamp));
+              $("tbody").append(tr_entry);
+          }
+
+      }
+  });
+});
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+index.css is this:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+h3 {
+  text-align: center;
+}
+
+#control {
+  margin-left: 20%;
+  margin-right:20%
+}
+
+#info {
+  margin-left: 10%;
+  margin-top: 2%;
+  margin-bottom: 5%
+}
+
+table {
+  border-collapse: collapse;
+  width: 80%;
+}
+
+th {
+  background-color: #4CAF50;
+  color: white;
+  
+}
+
+th, tr {
+  text-align: center;
+}
+
+tr:hover {background-color: #f5f5f5;}
+
+#identity {
+  text-align: center;
+  margin-top: 2%;
+}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<!-- Markdeep: --><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js?" charset="utf-8"></script>

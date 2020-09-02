@@ -1,0 +1,36 @@
+h3 {
+    text-align: center;
+}
+
+#control {
+    margin-left: 20%;
+    margin-right:20%
+}
+
+#info {
+    margin-left: 10%;
+    margin-top: 2%;
+    margin-bottom: 5%
+}
+
+table {
+    border-collapse: collapse;
+    width: 80%;
+  }
+
+th {
+    background-color: #4CAF50;
+    color: white;
+    
+  }
+
+th, tr {
+    text-align: center;
+}
+
+tr:hover {background-color: #f5f5f5;}
+
+#identity {
+    text-align: center;
+    margin-top: 2%;
+}

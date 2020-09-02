@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Replay</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+        <link rel='stylesheet' href='index.css'>
+    </head>
+    <body>
+        <h3>Replay Past Games</h3>
+        <form id = "control">
+            <div class="form-group">
+                <label for="games">Choose a game id to replay</label>
+                <select id = "games" class="form-control">
+                    <option>------</option>
+                </select>
+              </div>
+
+            <button type="button" class="btn btn-primary">Submit</button>    
+        </form>
+        <div class = "row" id = "identity">
+            <div class="col-sm-4"><img src="http://web.mit.edu/sfang22/www/resources/landlord.png" height="100" /> <p id = "ll">Landlord: </p></div>
+            <div class="col-sm-4"><img src="http://web.mit.edu/sfang22/www/resources/peasant.jpg" height="100" /> <p id = "p1"> Peasant1: </p></div>
+            <div class="col-sm-4"><img src="http://web.mit.edu/sfang22/www/resources/peasant.jpg" height="100" /> <p id = "p2"> Peasant2: </p></div>
+        </div>
+        <table id = "info">
+            <thead>
+              <tr>
+                <th scope="col">Current Player</th>
+                <th scope="col">Cards Played</th>
+                <th scope="col">Cards Remaining</th>
+                <th scope="col">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+          </table>
+        <script src = "./index.js"> </script>
+    </body>
+</html>
